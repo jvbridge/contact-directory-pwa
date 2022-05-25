@@ -1,17 +1,48 @@
-// TODO: Create a service worker that caches static assets:
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./service-worker.js').then(function(registration) {
-      // Registration was successful
-      console.log('ServiceWorker registration successful with scope: ', registration.scope);
-    }, function(err) {
-      // registration failed :(
-      console.log('ServiceWorker registration failed: ', err);
-    });
-  });
-}
+import { registerRoute } from 'workbox-routing';
+import { StaleWhileRevalidate, CacheFirst } from 'workbox-strategies';
+import { precacheAndRoute } from 'workbox-precaching';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 
-this.addEventListener('fetch', function (event) {
-  // This fetch function is required for the SW to be detected and is intentionally empty
-  // For a more robust, real-world SW example see: https://developers.google.com/web/fundamentals/primers/service-workers
-});
+// Import the expiration plugin
+import { ExpirationPlugin } from 'workbox-expiration';
+
+precacheAndRoute(self.__WB_MANIFEST);
+
+const cacheName = 'static-resources';
+const matchCallback = ({ request }) => {
+  console.log(request);
+  return (
+    // CSS
+    request.destination === 'style' ||
+    // JavaScript
+    request.destination === 'script'
+  );
+};
+
+registerRoute(
+  matchCallback,
+ new StaleWhileRevalidate({
+    cacheName,
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+    ],
+  })
+);
+
+registerRoute(
+  ({ request }) => request.destination === 'image',
+  new CacheFirst({
+    cacheName: 'my-image-cache',
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }),
+      new ExpirationPlugin({
+        maxEntries: 60,
+        maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+      }),
+    ],
+  })
+);
