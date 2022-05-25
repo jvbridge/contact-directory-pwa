@@ -1,0 +1,1 @@
+ A simple application that needs to be updated to use webpack, service workers, and IndexedDB
